@@ -107,7 +107,29 @@ Esta topología integra tres servicios en un único entorno de laboratorio:
 
 ### 3.1 Configuración de IP Estática
 
-Abrir **PowerShell como Administrador** y ejecutar:
+Existen dos formas de configurar la IP en Windows Server. La GUI es la forma natural en Windows — la CLI se incluye como referencia alternativa.
+
+**Opción A — GUI (forma recomendada):**
+
+**Ruta:** `Panel de Control → Centro de redes y recursos compartidos → Cambiar configuración del adaptador`
+
+1. Clic derecho sobre la interfaz de red → `Propiedades`
+2. Seleccionar `Protocolo de Internet versión 4 (TCP/IPv4)` → `Propiedades`
+3. Seleccionar `Usar la siguiente dirección IP` y completar:
+
+| Campo | Valor |
+|---|---|
+| Dirección IP | `20.25.37.10` |
+| Máscara de subred | `255.255.255.0` |
+| Puerta de enlace predeterminada | `20.25.37.254` |
+| Servidor DNS preferido | `8.8.8.8` |
+| Servidor DNS alternativo | `8.8.4.4` |
+
+4. Clic en **Aceptar** → **Cerrar**
+
+> Ver evidencia: [01_server_ip_gui.png](#01_server_ip_guipng)
+
+**Opción B — PowerShell (alternativa):**
 
 ```powershell
 New-NetIPAddress -InterfaceAlias "Ethernet" `
@@ -119,7 +141,7 @@ Set-DnsClientServerAddress -InterfaceAlias "Ethernet" `
     -ServerAddresses 8.8.8.8, 8.8.4.4
 ```
 
-Verificar:
+**Verificar (ambos métodos):**
 
 ```powershell
 ipconfig /all
@@ -603,7 +625,8 @@ Todas las capturas están en la carpeta [`screenshots/`](screenshots/).
 
 | # | Archivo | Descripción |
 |---|---|---|
-| 01 | [`01_server_ip_estatica.png`](screenshots/01_server_ip_estatica.png) | Salida de `ipconfig /all` en PowerShell mostrando la IP `20.25.37.10/24` y el gateway `20.25.37.254` configurados en el Windows Server. |
+| 01 | [`01_server_ip_gui.png`](screenshots/01_server_ip_gui.png) | Panel de Control → Propiedades de TCP/IPv4 mostrando la IP `20.25.37.10`, máscara `/24`, gateway `20.25.37.254` y DNS `8.8.8.8` configurados. |
+| 01b | [`01_server_ip_estatica.png`](screenshots/01_server_ip_estatica.png) | Salida de `ipconfig /all` en PowerShell confirmando la IP `20.25.37.10/24` y el gateway `20.25.37.254` activos. |
 | 02 | [`02_roles_instalados.png`](screenshots/02_roles_instalados.png) | Server Manager → Dashboard mostrando los tres roles instalados: IIS (Web Server), NPS (Network Policy and Access Services) y RDS (Remote Desktop Services) en verde. |
 | 03 | [`03_remoteapp_publicado.png`](screenshots/03_remoteapp_publicado.png) | RemoteApp Manager mostrando `notepad.exe` publicado como "Editor de Texto RemoteAPP" con estado activo. |
 | 04 | [`04_rdweb_portal.png`](screenshots/04_rdweb_portal.png) | Portal RDWeb (`https://20.25.37.10/rdweb`) cargado en el navegador mostrando la página de login con el logo de Windows Server. |
@@ -629,8 +652,6 @@ Todas las capturas están en la carpeta [`screenshots/`](screenshots/).
 ## 7. Video Demostrativo
 
 🎥 **[Ver demostración en YouTube](#)**
-
-> *(Enlace disponible en `videos.txt` en la raíz del repositorio)*
 
 **Duración:** máximo 8 minutos
 
