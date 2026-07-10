@@ -183,12 +183,12 @@ Install-WindowsFeature NPAS -IncludeManagementTools
 **Alternativa en PowerShell** (más rápido, mismo resultado):
 
 ```powershell
-New-RDSessionDeployment -ConnectionBroker "servidor.lab.local" `
-    -WebAccessServer "servidor.lab.local" `
-    -SessionHost "servidor.lab.local"
+New-RDSessionDeployment -ConnectionBroker "SERVER-LOCAL" `
+    -WebAccessServer "SERVER-LOCAL" `
+    -SessionHost "SERVER-LOCAL"
 ```
 
-> Reemplazar `servidor.lab.local` por el FQDN o nombre real del servidor.
+> Reemplazar `SERVER-LOCAL` por el FQDN o nombre real del servidor.
 
 **Verificación:**
 
