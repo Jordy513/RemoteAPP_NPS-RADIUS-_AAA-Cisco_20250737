@@ -132,12 +132,12 @@ Existen dos formas de configurar la IP en Windows Server. La GUI es la forma nat
 **Opción B — PowerShell (alternativa):**
 
 ```powershell
-New-NetIPAddress -InterfaceAlias "Ethernet" `
+New-NetIPAddress -InterfaceAlias "Ethernet0" `
     -IPAddress 20.25.37.10 `
     -PrefixLength 24 `
     -DefaultGateway 20.25.37.254
 
-Set-DnsClientServerAddress -InterfaceAlias "Ethernet" `
+Set-DnsClientServerAddress -InterfaceAlias "Ethernet0" `
     -ServerAddresses 8.8.8.8, 8.8.4.4
 ```
 
