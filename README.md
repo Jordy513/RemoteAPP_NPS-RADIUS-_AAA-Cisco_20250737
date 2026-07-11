@@ -459,39 +459,39 @@ Desde el portal RDWeb (`https://SERVER-LOCAL.lab.local/rdweb`), el cliente verá
 ---
 
 ### 3.9 Configurar NPS — RADIUS Server
-
+ 
 **Ruta:** `Administrador del servidor → Herramientas → Servidor de directivas de redes (NPS)`
-
+ 
 **Paso 1 — Crear usuarios (ahora como usuarios de dominio, ya que el servidor es DC):**
-
+ 
 ```powershell
 New-ADUser -Name "admin_lab" -SamAccountName "admin_lab" `
     -UserPrincipalName "admin_lab@lab.local" `
     -AccountPassword (ConvertTo-SecureString "AdminRadius123!" -AsPlainText -Force) `
     -Enabled $true -PasswordNeverExpires $true
-
+ 
 # El grupo "Domain Admins" se llama distinto según el idioma del sistema
 # (p. ej. "Admins. del dominio" en español). Para evitar ese problema,
 # lo referenciamos por su SID conocido (RID 512), que es el mismo en cualquier idioma:
 $domainSID = (Get-ADDomain).DomainSID.Value
 Add-ADGroupMember -Identity "$domainSID-512" -Members "admin_lab"
-
+ 
 New-ADUser -Name "user_lab" -SamAccountName "user_lab" `
     -UserPrincipalName "user_lab@lab.local" `
     -AccountPassword (ConvertTo-SecureString "UserRadius123!" -AsPlainText -Force) `
     -Enabled $true -PasswordNeverExpires $true
 ```
-
+ 
 > Si prefieres verificar el nombre real del grupo en tu idioma antes de usarlo en la política de NPS (sección 3.10), ejecuta:
 > ```powershell
 > Get-ADGroup -Filter 'Name -like "*dmin*"' | Select-Object Name
 > ```
 > En un AD en español normalmente aparece como `Admins. del dominio`.
-
+ 
 **Paso 2 — Agregar RADIUS Client (el Router):**
-
+ 
 En NPS → `Clientes y servidores RADIUS → Clientes RADIUS` → clic derecho → `Nuevo`
-
+ 
 | Campo | Valor |
 |---|---|
 | Nombre descriptivo | `Cisco-Router-Lab` |
@@ -499,9 +499,9 @@ En NPS → `Clientes y servidores RADIUS → Clientes RADIUS` → clic derecho �
 | Proveedor | `Cisco` |
 | Secreto compartido | `RadiusSecret123` |
 | Confirmar secreto | `RadiusSecret123` |
-
+ 
 > Ver evidencia: [11_usuarios_ad.png](#11_usuarios_adpng) y [12_nps_radius_client.png](#12_nps_radius_clientpng)
-
+ 
 ---
 
 ### 3.10 Crear Políticas de Acceso por Nivel
