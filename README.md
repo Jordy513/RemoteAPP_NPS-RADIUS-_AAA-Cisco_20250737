@@ -373,10 +373,15 @@ C:\inetpub\wwwroot\RemoteAPPAccess\index.html
 
 Contenido del archivo `index.html`:
 
+> ⚠️ **Si ya guardaste el archivo antes con símbolos raros (`â€"`, cuadros, etc.) y luego lo volviste a guardar en UTF-8 pero sigue igual:** esto es normal y no significa que la codificación esté mal ahora. Lo que pasa es que los caracteres especiales (el guion largo `—`, el punto medio `·`, el emoji) **ya se corrompieron a nivel de datos** la primera vez que se guardaron en ANSI. Volver a guardar como UTF-8 solo re-empaqueta esos mismos bytes rotos — no los repara, porque el editor no sabe que están mal, solo los vuelve a escribir tal cual los ve.
+>
+> **La solución real:** borra el archivo `index.html` actual y créalo de nuevo desde cero pegando el contenido de abajo (que ya usa **entidades HTML** — código ASCII puro — en vez de los caracteres especiales literales). Las entidades como `&mdash;`, `&middot;` y `&#128421;` siempre se muestran correctamente en cualquier navegador, sin importar la codificación del archivo, porque son solo texto ASCII que el navegador traduce al renderizar — no dependen de que el archivo se haya guardado en UTF-8 o ANSI.
+
 ```html
 <!DOCTYPE html>
 <html>
 <head>
+    <meta charset="UTF-8">
     <title>Portal RemoteAPP - RADIUS Lab</title>
     <style>
         body {
@@ -398,9 +403,9 @@ Contenido del archivo `index.html`:
 </head>
 <body>
     <div class="container">
-        <h1>🖥️ Portal RemoteAPP</h1>
-        <p>Bienvenido al laboratorio — Jordy Rosario · 20250737</p>
-        <p>Seguridad de Redes 2026-C-2 · ITLA</p>
+        <h1>&#128421; Portal RemoteAPP</h1>
+        <p>Bienvenido al laboratorio &mdash; Jordy Rosario &middot; 20250737</p>
+        <p>Seguridad de Redes 2026-C-2 &middot; ITLA</p>
     </div>
 </body>
 </html>
