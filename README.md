@@ -10,29 +10,19 @@
 
 1. [Objetivo de la Red](#1-objetivo-de-la-red)
 2. [Topología y Direccionamiento](#2-topología-y-direccionamiento)
-   - [Diagrama de Topología](#21-diagrama-de-topología)
-   - [Tabla de Dispositivos](#22-tabla-de-dispositivos)
 3. [Parte 1 — Windows Server](#3-parte-1--windows-server)
    - [3.1 Configuración de IP Estática](#31-configuración-de-ip-estática)
-   - [3.2 Instalación de Roles](#32-instalación-de-roles)
-   - [3.3 Configurar RemoteAPP](#33-configurar-remoteapp)
-   - [3.4 Configurar RemoteAPP Web Client](#34-configurar-remoteapp-web-client)
-   - [3.5 Crear Página Personalizada en IIS](#35-crear-página-personalizada-en-iis)
-   - [3.6 Publicar la Página en RemoteAPP](#36-publicar-la-página-en-remoteapp)
-   - [3.7 Configurar NPS — RADIUS Server](#37-configurar-nps--radius-server)
-   - [3.8 Crear Políticas de Acceso por Nivel](#38-crear-políticas-de-acceso-por-nivel)
+   - [3.2 Promover el Servidor a Controlador de Dominio](#32-promover-el-servidor-a-controlador-de-dominio)
+   - [3.3 Instalación de Roles (IIS, NPS, RDS)](#33-instalación-de-roles-iis-nps-rds)
+   - [3.4 Crear el Despliegue de RDS](#34-crear-el-despliegue-de-rds)
+   - [3.5 Corregir el Certificado de RDWeb](#35-corregir-el-certificado-de-rdweb)
+   - [3.6 Crear la Colección de Sesiones y Publicar RemoteAPP](#36-crear-la-colección-de-sesiones-y-publicar-remoteapp)
+   - [3.7 Crear Página Personalizada en IIS](#37-crear-página-personalizada-en-iis)
+   - [3.8 Publicar la Página IIS en RemoteAPP](#38-publicar-la-página-iis-en-remoteapp)
+   - [3.9 Configurar NPS — RADIUS Server](#39-configurar-nps--radius-server)
+   - [3.10 Crear Políticas de Acceso por Nivel](#310-crear-políticas-de-acceso-por-nivel)
 4. [Parte 2 — Router Cisco (AAA + RADIUS)](#4-parte-2--router-cisco-aaa--radius)
-   - [4.1 Configuración Básica e Interfaz](#41-configuración-básica-e-interfaz)
-   - [4.2 Usuarios Locales (Fallback)](#42-usuarios-locales-fallback)
-   - [4.3 Configurar RADIUS Server](#43-configurar-radius-server)
-   - [4.4 Habilitar AAA](#44-habilitar-aaa)
-   - [4.5 Habilitar SSH](#45-habilitar-ssh)
 5. [Parte 3 — Pruebas desde el Cliente (Host)](#5-parte-3--pruebas-desde-el-cliente-host)
-   - [5.1 Página IIS](#51-página-iis)
-   - [5.2 Portal RemoteAPP Web (RDWeb)](#52-portal-remoteapp-web-rdweb)
-   - [5.3 Conexión RemoteAPP Directo (.rdp)](#53-conexión-remoteapp-directo-rdp)
-   - [5.4 SSH al Router via RADIUS](#54-ssh-al-router-via-radius)
-   - [5.5 Verificación de AAA en el Router](#55-verificación-de-aaa-en-el-router)
 6. [Capturas de Pantalla](#6-capturas-de-pantalla)
 7. [Video Demostrativo](#7-video-demostrativo)
 8. [Referencias](#8-referencias)
@@ -47,6 +37,8 @@ Esta topología integra tres servicios en un único entorno de laboratorio:
 * **IIS + Página personalizada:** Servir una página web institucional desde el Windows Server, publicada también como recurso en el portal RemoteAPP Web.
 * **NPS (RADIUS):** Centralizar la autenticación de red — el Windows Server actúa como servidor RADIUS que valida usuarios con distintos niveles de privilegio (nivel 15 para administradores, nivel 1 para usuarios estándar).
 * **AAA en el Router Cisco:** Delegar la autenticación SSH del router al servidor RADIUS, de modo que las credenciales se validan en el NPS y el router asigna el nivel de privilegio correspondiente según la política de acceso devuelta. Los usuarios locales actúan como fallback si el RADIUS no responde.
+
+> ⚠️ **Nota importante:** El portal RDWeb (RemoteAPP Web Client) requiere **RD Connection Broker**, el cual en Windows Server 2022 **no se puede desplegar correctamente en modo workgroup** (sin dominio) — el proceso depende de PowerShell Remoting con autenticación Kerberos entre el propio servidor y sí mismo, algo que un workgroup no resuelve de forma confiable. Por eso este lab **promueve el servidor a Controlador de Dominio** (`lab.local`) antes de tocar RDS. Es un dominio de un solo servidor, exclusivamente para que RDS funcione — no hacen falta más DCs ni clientes unidos al dominio para el resto del lab.
 
 ---
 
@@ -63,13 +55,15 @@ Esta topología integra tres servicios en un único entorno de laboratorio:
                          │           │            │
               ┌──────────┴──┐  ┌─────┴──────┐  ┌─┴──────────────┐
               │  Windows    │  │   Router   │  │    Cliente     │
-              │  Server     │  │   Cisco    │  │  (Host físico) │
-              │  2022       │  │            │  │                │
+              │  Server 2022│  │   Cisco    │  │  (Host físico) │
+              │  (DC lab.   │  │            │  │                │
+              │   local)    │  │            │  │                │
               │ 20.25.37.10 │  │20.25.37.254│  │  20.25.37.X    │
               │             │  │            │  │  (DHCP o       │
-              │ • IIS       │  │ • AAA      │  │   estática)    │
-              │ • RemoteAPP │  │ • RADIUS   │  │                │
-              │ • NPS/RADIUS│  │ • SSH      │  │                │
+              │ • AD DS     │  │ • AAA      │  │   estática)    │
+              │ • IIS       │  │ • RADIUS   │  │                │
+              │ • RemoteAPP │  │ • SSH      │  │                │
+              │ • NPS/RADIUS│  │            │  │                │
               └─────────────┘  └────────────┘  └────────────────┘
 
   Flujo de autenticación RADIUS:
@@ -78,7 +72,7 @@ Esta topología integra tres servicios en un único entorno de laboratorio:
               Router asigna nivel 15 (admin) o nivel 1 (user)
 
   Flujo RemoteAPP Web:
-  Cliente navegador → https://20.25.37.10/rdweb → Portal RDWeb
+  Cliente navegador → https://SERVER-LOCAL.lab.local/rdweb → Portal RDWeb
                            → lanza app RemoteAPP vía RDP
 ```
 
@@ -86,16 +80,25 @@ Esta topología integra tres servicios en un único entorno de laboratorio:
 
 | Dispositivo | Rol | Dirección IP | Máscara | Gateway | Notas |
 |---|---|---|---|---|---|
-| **Windows Server 2022** | IIS + RemoteAPP + NPS/RADIUS | 20.25.37.10 | /24 | 20.25.37.254 | IP estática |
+| **Windows Server 2022** | DC + IIS + RemoteAPP + NPS/RADIUS | 20.25.37.10 | /24 | 20.25.37.254 | IP estática |
 | **Router Cisco** | AAA client + RADIUS client + SSH | 20.25.37.254 | /24 | — | Fa0/0 o e0/0 |
 | **Cliente (Host físico)** | Consumidor de servicios | 20.25.37.X | /24 | 20.25.37.254 | DHCP o estática |
+
+**Datos del dominio:**
+
+| Campo | Valor |
+|---|---|
+| Nombre del dominio (FQDN) | `lab.local` |
+| Nombre NetBIOS | `LAB` |
+| Nombre del servidor | `SERVER-LOCAL` |
+| FQDN del servidor | `SERVER-LOCAL.lab.local` |
 
 **Usuarios configurados:**
 
 | Usuario | Contraseña | Nivel | Dónde existe |
 |---|---|---|---|
-| `admin_lab` | `AdminRadius123!` | 15 (Admin) | Windows Server — grupo Administradores |
-| `user_lab` | `UserRadius123!` | 1 (User) | Windows Server — usuario local sin grupo admin |
+| `admin_lab` | `AdminRadius123!` | 15 (Admin) | Windows Server — grupo de dominio (Domain Admins) |
+| `user_lab` | `UserRadius123!` | 1 (User) | Windows Server — usuario de dominio sin privilegios |
 | `admin_local` | `AdminLocal123!` | 15 | Router — fallback local |
 | `user_local` | `UserLocal123!` | 1 | Router — fallback local |
 
@@ -107,11 +110,7 @@ Esta topología integra tres servicios en un único entorno de laboratorio:
 
 ### 3.1 Configuración de IP Estática
 
-Existen dos formas de configurar la IP en Windows Server. La GUI es la forma natural en Windows — la CLI se incluye como referencia alternativa.
-
-**Opción A — GUI (forma recomendada):**
-
-**Ruta:** `Panel de control → Centro de redes y recursos compartidos → Cambiar configuración del adaptador`
+**Ruta GUI:** `Panel de control → Centro de redes y recursos compartidos → Cambiar configuración del adaptador`
 
 1. Clic derecho sobre la interfaz de red → `Propiedades`
 2. Seleccionar `Protocolo de Internet versión 4 (TCP/IPv4)` → `Propiedades`
@@ -122,14 +121,11 @@ Existen dos formas de configurar la IP en Windows Server. La GUI es la forma nat
 | Dirección IP | `20.25.37.10` |
 | Máscara de subred | `255.255.255.0` |
 | Puerta de enlace predeterminada | `20.25.37.254` |
-| Servidor DNS preferido | `8.8.8.8` |
-| Servidor DNS alternativo | `8.8.4.4` |
+| Servidor DNS preferido | `127.0.0.1` *(una vez sea DC, se apunta a sí mismo)* |
 
 4. Clic en **Aceptar** → **Cerrar**
 
-> Ver evidencia: [01_server_ip_gui.png](#01_server_ip_guipng)
-
-**Opción B — PowerShell (alternativa):**
+**Alternativa PowerShell:**
 
 ```powershell
 New-NetIPAddress -InterfaceAlias "Ethernet0" `
@@ -137,11 +133,10 @@ New-NetIPAddress -InterfaceAlias "Ethernet0" `
     -PrefixLength 24 `
     -DefaultGateway 20.25.37.254
 
-Set-DnsClientServerAddress -InterfaceAlias "Ethernet0" `
-    -ServerAddresses 8.8.8.8, 8.8.4.4
+Set-DnsClientServerAddress -InterfaceAlias "Ethernet0" -ServerAddresses 127.0.0.1
 ```
 
-**Verificar (ambos métodos):**
+**Verificar:**
 
 ```powershell
 ipconfig /all
@@ -151,109 +146,210 @@ ipconfig /all
 
 ---
 
-### 3.2 Instalación de Roles
+### 3.2 Promover el Servidor a Controlador de Dominio
 
-⚠️ **Importante — Server 2022:** RDS **no se instala como una feature suelta**. Si solo instalas `RDS-RD-Server` y `RDS-Licensing` por separado (vía `Install-WindowsFeature` o "Instalación basada en roles o características"), **Administrador de RemoteApp nunca aparece**, porque ese asistente no conecta entre sí los tres roles necesarios (RD Session Host + RD Connection Broker + RD Web Access). Por eso hay que usar el **asistente de implementación de RDS** (o su equivalente en PowerShell), como se explica abajo.
+Este paso es **obligatorio** para que RDS (RD Connection Broker / RDWeb) funcione correctamente en Server 2022. Sin esto, `New-RDSessionDeployment` falla con errores de WinRM/Kerberos imposibles de resolver de forma estable en workgroup.
 
-**Paso 1 — Instalar IIS y NPS (estos sí se instalan como roles sueltos):**
-
-En **PowerShell como Administrador:**
+**Paso 1 — Instalar el rol AD DS:**
 
 ```powershell
-# IIS + ASP.NET
-Install-WindowsFeature Web-Server, Web-App-Dev, Net-Framework-45-ASPNET, Web-Asp-Net45
-
-# NPS — Network Policy Server (RADIUS)
-Install-WindowsFeature NPAS -IncludeManagementTools
+Install-WindowsFeature AD-Domain-Services -IncludeManagementTools
 ```
 
-**Paso 2 — Desplegar RDS con el asistente correcto:**
-
-**Ruta GUI:** `Administrador del servidor → Administrar → Agregar roles y características`
-
-1. En **Tipo de instalación**, elegir **"Instalación de Servicios de Escritorio remoto"** (⚠️ NO "Instalación basada en roles o características" — esa opción es la que deja RDS a medias).
-2. En **Tipo de implementación**, elegir **"Implementación estándar"**.
-3. En **Escenario de implementación**, elegir **"Implementación de escritorios basada en sesión"**.
-4. Asignar el mismo servidor a los tres roles solicitados:
-   - Servidor de host de sesión de Escritorio remoto (RD Session Host)
-   - Agente de conexión a Escritorio remoto (RD Connection Broker)
-   - Acceso web de Escritorio remoto (RD Web Access)
-5. Confirmar e instalar (el servidor se reiniciará).
-
-**Alternativa en PowerShell** (más rápido, mismo resultado):
+**Paso 2 — Promover el servidor y crear el bosque/dominio nuevo:**
 
 ```powershell
-New-RDSessionDeployment -ConnectionBroker "SERVER-LOCAL" `
-    -WebAccessServer "SERVER-LOCAL" `
-    -SessionHost "SERVER-LOCAL"
+Import-Module ADDSDeployment
+
+Install-ADDSForest `
+    -DomainName "lab.local" `
+    -DomainNetbiosName "LAB" `
+    -InstallDns:$true `
+    -SafeModeAdministratorPassword (ConvertTo-SecureString "Segura123!" -AsPlainText -Force) `
+    -Force:$true
 ```
 
-> Reemplazar `SERVER-LOCAL` por el FQDN o nombre real del servidor.
+> El servidor se reiniciará automáticamente al terminar. Espera 2-3 minutos extra tras el login para que AD/DNS terminen de inicializar en segundo plano.
 
-**Verificación:**
+**Paso 3 — Verificar el dominio tras el reinicio:**
 
-Confirmar instalación desde **Administrador del servidor → Panel** — los roles IIS, NPS y Servicios de Escritorio remoto deben aparecer en verde sin errores, y en el panel izquierdo debe aparecer la nueva sección **"Servicios de Escritorio remoto"** con el resumen de la implementación.
+```powershell
+Get-ADDomain
+Resolve-DnsName SERVER-LOCAL.lab.local -Type A
+ipconfig /all
+```
 
-> Ver evidencia: [02_roles_instalados.png](#02_roles_instaladospng)
+* `Get-ADDomain` debe mostrar `DNSRoot: lab.local`.
+* `Resolve-DnsName` debe devolver `20.25.37.10`.
+* `ipconfig /all` debe mostrar `Sufijo DNS principal: lab.local`.
+
+> A partir de aquí inicia sesión como `LAB\Administrador` (misma contraseña que tenías como admin local).
+
+> Ver evidencia: [02_dominio_creado.png](#02_dominio_creadopng)
 
 ---
 
-### 3.3 Configurar RemoteAPP
+### 3.3 Instalación de Roles (IIS, NPS, RDS)
 
-**Ruta:** `Administrador del servidor → Herramientas → Servicios de Escritorio remoto → Administrador de RemoteApp`
+**Paso 1 — IIS y NPS (roles independientes, sin problema):**
 
-**Paso 1 — Publicar una aplicación:**
+```powershell
+Install-WindowsFeature Web-Server, Web-App-Dev, Net-Framework-45-ASPNET, Web-Asp-Net45
+Install-WindowsFeature NPAS -IncludeManagementTools
+```
 
-1. En Administrador de RemoteApp → clic derecho en **Programas RemoteApp** → `Publicar programa RemoteApp`
-2. Seleccionar: `notepad.exe` (Bloc de notas)
+**Paso 2 — Roles de RDS, instalados uno por uno vía PowerShell:**
+
+> ⚠️ **No uses el asistente GUI "Instalación de Servicios de Escritorio remoto → Implementación estándar"**. Ese wizard tiene un bug conocido en Server 2022 (falla con `ArgumentNotValid: MultiPointServerRole` y cancela toda la instalación). Instala los role services por separado en su lugar:
+
+```powershell
+Install-WindowsFeature -Name RDS-RD-Server -IncludeManagementTools
+Install-WindowsFeature -Name RDS-Connection-Broker -IncludeManagementTools
+Install-WindowsFeature -Name RDS-Web-Access -IncludeManagementTools
+```
+
+**Paso 3 — Reiniciar y verificar:**
+
+```powershell
+Restart-Computer
+```
+
+Después del reinicio:
+
+```powershell
+Get-WindowsFeature RDS-RD-Server, RDS-Connection-Broker, RDS-Web-Access
+```
+
+Los tres deben mostrar `Installed`.
+
+> Ver evidencia: [03_roles_instalados.png](#03_roles_instaladospng)
+
+---
+
+### 3.4 Crear el Despliegue de RDS
+
+Con el dominio ya creado, este paso debería completarse sin errores. Usa el **FQDN real** del servidor:
+
+```powershell
+New-RDSessionDeployment -ConnectionBroker "SERVER-LOCAL.lab.local" `
+    -WebAccessServer "SERVER-LOCAL.lab.local" `
+    -SessionHost "SERVER-LOCAL.lab.local"
+```
+
+> Este comando puede tardar varios minutos. No lo interrumpas aunque la consola parezca colgada.
+
+**Si el comando falla con un error de RDMS o WID**, verifica y arranca estos servicios en orden antes de reintentar:
+
+```powershell
+Get-Service "MSSQL`$MICROSOFT##WID" | Select Status, StartType
+Start-Service "MSSQL`$MICROSOFT##WID"
+
+Get-Service RDMS | Select Status, StartType
+Start-Service RDMS
+```
+
+Si `RDMS` sigue sin arrancar después de esto, reinstala el rol de Connection Broker:
+
+```powershell
+Uninstall-WindowsFeature RDS-Connection-Broker
+Restart-Computer
+# Después del reinicio:
+Install-WindowsFeature RDS-Connection-Broker -IncludeManagementTools
+Restart-Computer
+```
+
+Y repite el `New-RDSessionDeployment`.
+
+**Verificar que quedó bien:**
+
+```powershell
+Get-RDServer
+```
+
+Debe listar `SERVER-LOCAL.LAB.LOCAL` con los tres roles: `RDS-RD-SERVER`, `RDS-CONNECTION-BROKER`, `RDS-WEB-ACCESS`.
+
+> En **Administrador del servidor**, si la sección "Servicios de Escritorio remoto" aún muestra "No existe una implementación" pese a que `Get-RDServer` ya la confirma, es solo caché de la consola — cierra y vuelve a abrir Administrador del servidor (o `Restart-Service RDMS` y reabre).
+
+> Ver evidencia: [04_get_rdserver.png](#04_get_rdserverpng)
+
+---
+
+### 3.5 Corregir el Certificado de RDWeb
+
+Al probar `https://SERVER-LOCAL.lab.local/rdweb`, navegadores basados en Chromium (Edge, Chrome) rechazan el certificado autofirmado que RDWeb genera por defecto, mostrando:
+
+```
+ERR_SSL_KEY_USAGE_INCOMPATIBLE
+```
+
+Esto ocurre porque el certificado por defecto no tiene el `Key Usage` que Chromium exige explícitamente para autenticación de servidor. La solución es generar un certificado nuevo con las extensiones correctas y asignarlo al sitio.
+
+**Paso 1 — Generar el certificado:**
+
+```powershell
+$cert = New-SelfSignedCertificate -DnsName "SERVER-LOCAL.lab.local", "20.25.37.10" `
+    -CertStoreLocation "cert:\LocalMachine\My" `
+    -KeyUsage DigitalSignature, KeyEncipherment `
+    -KeyExportPolicy Exportable `
+    -NotAfter (Get-Date).AddYears(5)
+```
+
+**Paso 2 — Asignarlo como binding SSL del sitio (puerto 443):**
+
+```powershell
+Import-Module WebAdministration
+Remove-Item IIS:\SslBindings\0.0.0.0!443 -ErrorAction SilentlyContinue
+New-Item IIS:\SslBindings\0.0.0.0!443 -Value $cert
+```
+
+**Paso 3 — Reiniciar IIS:**
+
+```powershell
+iisreset
+```
+
+**Paso 4 — Probar de nuevo:**
+
+```
+https://SERVER-LOCAL.lab.local/rdweb
+```
+
+> El navegador seguirá mostrando advertencia de "certificado no confiable" (porque sigue siendo autofirmado), pero ya no debe dar el error `ERR_SSL_KEY_USAGE_INCOMPATIBLE`. Acepta la excepción de seguridad para continuar — es esperado en un lab sin CA corporativa.
+
+> Ver evidencia: [05_rdweb_certificado_ok.png](#05_rdweb_certificado_okpng)
+
+---
+
+### 3.6 Crear la Colección de Sesiones y Publicar RemoteAPP
+
+**Ruta GUI:** `Administrador del servidor → Servicios de Escritorio remoto → Colecciones`
+
+**Paso 1 — Crear la colección:**
+
+1. `Tareas → Crear colección de sesiones`
+2. Nombre: `RemoteAPP-Collection`
+3. Seleccionar el servidor RD Session Host: `SERVER-LOCAL.lab.local`
+4. Finalizar el asistente
+
+**Paso 2 — Publicar Notepad como RemoteAPP de prueba:**
+
+**Ruta GUI:** `Administrador del servidor → Herramientas → Servicios de Escritorio remoto → Administrador de RemoteApp`
+
+1. Clic derecho en **Programas RemoteApp** → `Publicar programa RemoteApp`
+2. Seleccionar `notepad.exe`
 3. Nombre visible: `Editor de Texto RemoteAPP`
-4. Clic en **Publicar**
+4. Publicar
 
-**Paso 2 — Exportar el archivo .rdp:**
+**Paso 3 — Exportar el archivo .rdp (para conexión directa sin portal):**
 
 1. Clic derecho sobre la app publicada → `Crear archivo .rdp`
 2. Guardar en una ubicación accesible para el cliente
 
-> El archivo `.rdp` permite al cliente lanzar la aplicación RemoteAPP directamente sin pasar por el portal web.
-
-> Ver evidencia: [03_remoteapp_publicado.png](#03_remoteapp_publicadopng)
+> Ver evidencia: [06_collection_creada.png](#06_collection_creadapng) y [07_remoteapp_publicado.png](#07_remoteapp_publicadopng)
 
 ---
 
-### 3.4 Configurar RemoteAPP Web Client
-
-El portal RDWeb permite acceder a las aplicaciones RemoteAPP desde un navegador web mediante HTTPS.
-
-**Ruta:** `Administrador del servidor → Servicios de Escritorio remoto → Colecciones`
-
-**Paso 1 — Crear una Colección de sesiones:**
-
-1. Clic en `Tareas → Crear colección de sesiones`
-2. Nombre: `RemoteAPP-Collection`
-3. Seleccionar el servidor RD Session Host: el propio servidor
-4. Finalizar el asistente
-
-**Paso 2 — Publicar la app en la colección:**
-
-1. En la colección creada → `Programas RemoteApp → Publicar programas RemoteApp`
-2. Seleccionar `notepad.exe` y cualquier otra app a publicar
-3. Completar el asistente
-
-**Paso 3 — Verificar el portal RDWeb:**
-
-Desde el cliente navegar a:
-
-```
-https://20.25.37.10/rdweb
-```
-
-> Si el certificado SSL es auto-firmado, aceptar la advertencia del navegador.
-
-> Ver evidencia: [04_rdweb_portal.png](#04_rdweb_portalpng)
-
----
-
-### 3.5 Crear Página Personalizada en IIS
+### 3.7 Crear Página Personalizada en IIS
 
 **Paso 1 — Crear la carpeta y el archivo HTML:**
 
@@ -313,75 +409,65 @@ Contenido del archivo `index.html`:
 http://20.25.37.10/RemoteAPPAccess/
 ```
 
-> Ver evidencia: [05_iis_pagina_custom.png](#05_iis_pagina_custompng) y [06_iis_virtual_directory.png](#06_iis_virtual_directorypng)
+> Ver evidencia: [08_iis_pagina_custom.png](#08_iis_pagina_custompng) y [09_iis_virtual_directory.png](#09_iis_virtual_directorypng)
 
 ---
 
-### 3.6 Publicar la Página en RemoteAPP
+### 3.8 Publicar la Página IIS en RemoteAPP
 
-Publicar Internet Explorer (o Microsoft Edge) como aplicación RemoteAPP apuntando a la página IIS, de modo que el cliente pueda abrirla a través del portal RDWeb.
+Publicar Microsoft Edge (o Internet Explorer) como aplicación RemoteAPP apuntando a la página IIS, de modo que el cliente pueda abrirla a través del portal RDWeb — esto cumple el requisito de "consultar la página mediante los dos servicios de RDP RemoteAPP" (portal web + .rdp directo).
 
 **Ruta:** `Administrador de RemoteApp → Publicar programa RemoteApp`
 
-1. Seleccionar `iexplore.exe` o `msedge.exe`
+1. Seleccionar `msedge.exe` (o `iexplore.exe` si está disponible)
 2. Nombre visible: `Portal IIS RemoteAPP`
 3. En **Argumentos de línea de comandos**: `http://localhost/RemoteAPPAccess/`
 4. Publicar
 
-Desde el portal RDWeb (`https://20.25.37.10/rdweb`), el cliente verá esta aplicación y al abrirla se lanzará el navegador directamente apuntando a la página IIS.
+Desde el portal RDWeb (`https://SERVER-LOCAL.lab.local/rdweb`), el cliente verá esta aplicación y al abrirla se lanzará el navegador apuntando a la página IIS.
 
-> Ver evidencia: [07_remoteapp_iis_publicado.png](#07_remoteapp_iis_publicadopng)
+> Ver evidencia: [10_remoteapp_iis_publicado.png](#10_remoteapp_iis_publicadopng)
 
 ---
 
-### 3.7 Configurar NPS — RADIUS Server
+### 3.9 Configurar NPS — RADIUS Server
 
 **Ruta:** `Administrador del servidor → Herramientas → Servidor de directivas de redes (NPS)`
 
-**Paso 1 — Crear usuarios locales en PowerShell:**
+**Paso 1 — Crear usuarios (ahora como usuarios de dominio, ya que el servidor es DC):**
 
 ```powershell
-# Usuario administrador (nivel 15)
-New-LocalUser -Name "admin_lab" `
-    -Password (ConvertTo-SecureString "AdminRadius123!" -AsPlainText -Force) `
-    -FullName "Administrador Lab"
-Add-LocalGroupMember -Group "Administradores" -Member "admin_lab"
+New-ADUser -Name "admin_lab" -SamAccountName "admin_lab" `
+    -UserPrincipalName "admin_lab@lab.local" `
+    -AccountPassword (ConvertTo-SecureString "AdminRadius123!" -AsPlainText -Force) `
+    -Enabled $true -PasswordNeverExpires $true
+Add-ADGroupMember -Identity "Domain Admins" -Members "admin_lab"
 
-# Usuario estándar (nivel 1)
-New-LocalUser -Name "user_lab" `
-    -Password (ConvertTo-SecureString "UserRadius123!" -AsPlainText -Force) `
-    -FullName "Usuario Lab"
+New-ADUser -Name "user_lab" -SamAccountName "user_lab" `
+    -UserPrincipalName "user_lab@lab.local" `
+    -AccountPassword (ConvertTo-SecureString "UserRadius123!" -AsPlainText -Force) `
+    -Enabled $true -PasswordNeverExpires $true
 ```
 
-> Nota: en español el grupo se llama **`Administradores`**, no `Administrators`. Si el comando `Add-LocalGroupMember` falla con "grupo no encontrado", verifica el nombre exacto con `Get-LocalGroup`.
+> Nota: usamos `Domain Admins` como grupo de nivel 15 porque ya existe y es equivalente a "Administradores" local en un DC. Si prefieres un grupo dedicado, créalo con `New-ADGroup -Name "RADIUS-Admins" -GroupScope Global` y agrega ahí a `admin_lab`.
 
-> Ver evidencia: [08_usuarios_locales.png](#08_usuarios_localespng)
-
-**Paso 2 — Registrar NPS en Active Directory (si aplica):**
-
-En NPS → clic derecho en el nodo raíz → `Registrar servidor en Active Directory`
-
-> Si el servidor no está en un dominio, omitir este paso.
-
-**Paso 3 — Agregar RADIUS Client (el Router):**
+**Paso 2 — Agregar RADIUS Client (el Router):**
 
 En NPS → `Clientes y servidores RADIUS → Clientes RADIUS` → clic derecho → `Nuevo`
 
 | Campo | Valor |
 |---|---|
-| Nombre descriptivo (Friendly name) | `Cisco-Router-Lab` |
+| Nombre descriptivo | `Cisco-Router-Lab` |
 | Dirección (IP) | `20.25.37.254` |
-| Proveedor (Vendor) | `Cisco` |
-| Secreto compartido (Shared Secret) | `RadiusSecret123` |
+| Proveedor | `Cisco` |
+| Secreto compartido | `RadiusSecret123` |
 | Confirmar secreto | `RadiusSecret123` |
 
-> Ver evidencia: [09_nps_radius_client.png](#09_nps_radius_clientpng)
+> Ver evidencia: [11_usuarios_ad.png](#11_usuarios_adpng) y [12_nps_radius_client.png](#12_nps_radius_clientpng)
 
 ---
 
-### 3.8 Crear Políticas de Acceso por Nivel
-
-Las políticas NPS determinan qué nivel de privilegio Cisco se devuelve al router según el grupo del usuario que se autentica.
+### 3.10 Crear Políticas de Acceso por Nivel
 
 **Política 1 — Nivel 15 (Administrador):**
 
@@ -390,21 +476,13 @@ Las políticas NPS determinan qué nivel de privilegio Cisco se devuelve al rout
 | Paso | Campo | Valor |
 |---|---|---|
 | 1 | Nombre de la directiva | `Admin_Level_15` |
-| 1 | Estado de la directiva | `Habilitada` |
-| 2 | Condiciones → Agregar → `Grupos de Windows` | `Administradores` |
+| 1 | Estado | `Habilitada` |
+| 2 | Condiciones → Agregar → `Grupos de Windows` | `LAB\Domain Admins` |
 | 3 | Permiso de acceso | `Acceso concedido` |
 | 4 | Métodos de autenticación | `MS-CHAP v2`, `CHAP` |
-| 5 | Configuración → Atributos RADIUS → Específico del proveedor → Agregar | |
-| 5 | Proveedor | `Cisco` |
-| 5 | Valor del atributo | `shell:priv-lvl=15` |
-
-> El atributo `Cisco-AVPair = shell:priv-lvl=15` le indica al router que debe asignar nivel de privilegio 15 al usuario autenticado.
-
-> Ver evidencia: [10_nps_policy_level15.png](#10_nps_policy_level15png)
+| 5 | Configuración → Atributos RADIUS → Específico del proveedor → Agregar → Proveedor `Cisco` | `shell:priv-lvl=15` |
 
 **Política 2 — Nivel 1 (Usuario estándar):**
-
-Repetir el mismo proceso con:
 
 | Campo | Valor |
 |---|---|
@@ -412,9 +490,9 @@ Repetir el mismo proceso con:
 | Condiciones → `Grupos de Windows` | *(ningún grupo específico — aplica a `user_lab`)* |
 | Valor del atributo | `shell:priv-lvl=1` |
 
-> Asegurarse de que la política `Admin_Level_15` esté **por encima** de `User_Level_1` en el orden de procesamiento. NPS aplica la primera política que hace match.
+> `Admin_Level_15` debe estar **por encima** de `User_Level_1` en el orden de procesamiento (NPS aplica la primera política que hace match).
 
-> Ver evidencia: [11_nps_policy_level1.png](#11_nps_policy_level1png)
+> Ver evidencia: [13_nps_policy_level15.png](#13_nps_policy_level15png) y [14_nps_policy_level1.png](#14_nps_policy_level1png)
 
 ---
 
@@ -434,19 +512,13 @@ interface FastEthernet0/0
 end
 ```
 
----
-
 ### 4.2 Usuarios Locales (Fallback)
-
-Los usuarios locales actúan como mecanismo de respaldo si el servidor RADIUS no está disponible.
 
 ```cisco
 configure terminal
 username admin_local privilege 15 secret AdminLocal123!
 username user_local privilege 1 secret UserLocal123!
 ```
-
----
 
 ### 4.3 Configurar RADIUS Server
 
@@ -458,31 +530,23 @@ radius server NPS-Lab
 exit
 ```
 
----
-
 ### 4.4 Habilitar AAA
 
 ```cisco
 configure terminal
 aaa new-model
 
-! Autenticación — primero RADIUS, fallback a local
 aaa authentication login default group radius local
 
-! Autorización — niveles de comandos vía RADIUS
 aaa authorization console
 aaa authorization commands 0 default group radius local
 aaa authorization commands 1 default group radius local
 aaa authorization commands 15 default group radius local
 
-! Accounting — registrar inicio/fin de sesiones en RADIUS
 aaa accounting exec default start-stop group radius
 
-! Contraseña para modo privilegiado (enable)
 enable secret EnablePassword123!
 ```
-
----
 
 ### 4.5 Habilitar SSH
 
@@ -500,7 +564,7 @@ exit
 write memory
 ```
 
-**Verificar generación de clave RSA:**
+**Verificar:**
 
 ```cisco
 show ip ssh
@@ -514,59 +578,36 @@ show ip ssh
 
 ### 5.1 Página IIS
 
-Abrir el navegador en el host y navegar a:
-
 ```
 http://20.25.37.10/RemoteAPPAccess/
 ```
 
-Debe cargarse la página personalizada con el título "Portal RemoteAPP" y los datos del laboratorio.
-
-> Ver evidencia: [12_cliente_pagina_iis.png](#12_cliente_pagina_iispng)
-
----
+> Ver evidencia: [15_cliente_pagina_iis.png](#15_cliente_pagina_iispng)
 
 ### 5.2 Portal RemoteAPP Web (RDWeb)
 
-Abrir el navegador y navegar a:
-
 ```
-https://20.25.37.10/rdweb
+https://SERVER-LOCAL.lab.local/rdweb
 ```
 
-Iniciar sesión con:
+Iniciar sesión con `admin_lab` / `AdminRadius123!`. Deben aparecer las apps publicadas (Notepad, Portal IIS). Lanzar el "Portal IIS RemoteAPP" desde aquí satisface la prueba de "consultar la página vía RDWeb".
 
-| Campo | Valor |
-|---|---|
-| Usuario | `admin_lab` |
-| Contraseña | `AdminRadius123!` |
-
-Deben aparecer las aplicaciones publicadas (Notepad, Portal IIS). Hacer clic en una para lanzarla vía RDP desde el navegador.
-
-> Ver evidencia: [13_rdweb_login.png](#13_rdweb_loginpng) y [14_rdweb_app_lanzada.png](#14_rdweb_app_lanzadapng)
-
----
+> Ver evidencia: [16_rdweb_login.png](#16_rdweb_loginpng) y [17_rdweb_app_lanzada.png](#17_rdweb_app_lanzadapng)
 
 ### 5.3 Conexión RemoteAPP Directo (.rdp)
 
-Desde el host, abrir el archivo `.rdp` exportado en la sección 3.3. Windows lanzará la aplicación RemoteAPP directamente sin pasar por el portal web.
+Abrir el archivo `.rdp` exportado en la sección 3.6/3.8 (versión Notepad o versión Edge apuntando a la página IIS). Esto cubre el segundo de "los dos servicios de RDP RemoteAPP" que pide la tarea.
 
-> Ver evidencia: [15_remoteapp_rdp_directo.png](#15_remoteapp_rdp_directopng)
-
----
+> Ver evidencia: [18_remoteapp_rdp_directo.png](#18_remoteapp_rdp_directopng)
 
 ### 5.4 SSH al Router via RADIUS
 
-Abrir una terminal (PowerShell, CMD o PuTTY) en el host y conectarse al router:
-
-**Con usuario nivel 15 (Administrador):**
+**Nivel 15:**
 
 ```bash
 ssh admin_lab@20.25.37.254
 # Password: AdminRadius123!
 ```
-
-Una vez conectado, verificar el nivel de privilegio:
 
 ```cisco
 Lab-Router> show privilege
@@ -574,7 +615,7 @@ Current privilege level is 15
 Lab-Router# show run    ! debe funcionar
 ```
 
-**Con usuario nivel 1 (estándar):**
+**Nivel 1:**
 
 ```bash
 ssh user_lab@20.25.37.254
@@ -584,24 +625,22 @@ ssh user_lab@20.25.37.254
 ```cisco
 Lab-Router> show privilege
 Current privilege level is 1
-Lab-Router> show run    ! debe ser denegado — acceso insuficiente
+Lab-Router> show run    ! debe ser denegado
 ```
 
-> Ver evidencia: [16_ssh_nivel15.png](#16_ssh_nivel15png) y [17_ssh_nivel1.png](#17_ssh_nivel1png)
-
----
+> Ver evidencia: [19_ssh_nivel15.png](#19_ssh_nivel15png) y [20_ssh_nivel1.png](#20_ssh_nivel1png)
 
 ### 5.5 Verificación de AAA en el Router
 
-Ejecutar los siguientes comandos en el router para verificar el funcionamiento completo de AAA y RADIUS:
-
-**Estado del servidor RADIUS:**
-
 ```cisco
 show aaa servers
+show aaa sessions
+debug aaa authentication
+debug aaa authorization
+debug radius
 ```
 
-*Salida esperada:*
+*Salida esperada de `show aaa servers`:*
 
 ```
 RADIUS: id 1, priority 1, host 20.25.37.10, auth-port 1812, acct-port 1813
@@ -611,39 +650,13 @@ RADIUS: id 1, priority 1, host 20.25.37.10, auth-port 1812, acct-port 1813
              Response: accept 3, reject 1, challenge 0
 ```
 
-> `State: current UP` confirma que el router tiene comunicación con el NPS. Los contadores de `accept` deben subir con cada login exitoso.
-
-**Sesiones AAA activas:**
-
-```cisco
-show aaa sessions
-```
-
-**Debug en tiempo real (ejecutar antes del login):**
-
-```cisco
-debug aaa authentication
-debug aaa authorization
-debug radius
-```
-
-*Salida esperada durante un login de `admin_lab`:*
-
-```
-AAA/AUTHEN: create_user user='admin_lab'
-RADIUS: Sending Access-Request to 20.25.37.10:1812
-RADIUS: Received Access-Accept from 20.25.37.10:1812
-AAA/AUTHOR: user='admin_lab' requests service=shell priv-level=15
-AAA/AUTHOR: vendor_specific attr Cisco-AVPair shell:priv-lvl=15
-```
-
-Para detener el debug:
+Detener el debug:
 
 ```cisco
 undebug all
 ```
 
-> Ver evidencia: [18_show_aaa_servers.png](#18_show_aaa_serverspng), [19_show_aaa_sessions.png](#19_show_aaa_sessionspng) y [20_debug_radius_output.png](#20_debug_radius_outputpng)
+> Ver evidencia: [21_show_aaa_servers.png](#21_show_aaa_serverspng), [22_show_aaa_sessions.png](#22_show_aaa_sessionspng) y [23_debug_radius_output.png](#23_debug_radius_outputpng)
 
 ---
 
@@ -653,27 +666,29 @@ Todas las capturas están en la carpeta [`screenshots/`](screenshots/).
 
 | # | Archivo | Descripción |
 |---|---|---|
-| 01 | [`01_server_ip_gui.png`](screenshots/01_server_ip_gui.png) | Panel de control → Propiedades de TCP/IPv4 mostrando la IP `20.25.37.10`, máscara `/24`, gateway `20.25.37.254` y DNS `8.8.8.8` configurados. |
-| 01b | [`01_server_ip_estatica.png`](screenshots/01_server_ip_estatica.png) | Salida de `ipconfig /all` en PowerShell confirmando la IP `20.25.37.10/24` y el gateway `20.25.37.254` activos. |
-| 02 | [`02_roles_instalados.png`](screenshots/02_roles_instalados.png) | Administrador del servidor → Panel mostrando los tres roles instalados: IIS (Servidor web), NPS (Servicios de directivas y acceso de redes) y Servicios de Escritorio remoto (implementación completa) en verde. |
-| 03 | [`03_remoteapp_publicado.png`](screenshots/03_remoteapp_publicado.png) | Administrador de RemoteApp mostrando `notepad.exe` publicado como "Editor de Texto RemoteAPP" con estado activo. |
-| 04 | [`04_rdweb_portal.png`](screenshots/04_rdweb_portal.png) | Portal RDWeb (`https://20.25.37.10/rdweb`) cargado en el navegador mostrando la página de login con el logo de Windows Server. |
-| 05 | [`05_iis_pagina_custom.png`](screenshots/05_iis_pagina_custom.png) | Navegador mostrando la página personalizada de IIS en `http://20.25.37.10/RemoteAPPAccess/` con el título "Portal RemoteAPP" y los datos del laboratorio. |
-| 06 | [`06_iis_virtual_directory.png`](screenshots/06_iis_virtual_directory.png) | Administrador de IIS mostrando el Directorio virtual `RemoteAPPAccess` creado bajo `Sitio web predeterminado`, con la ruta física `C:\inetpub\wwwroot\RemoteAPPAccess`. |
-| 07 | [`07_remoteapp_iis_publicado.png`](screenshots/07_remoteapp_iis_publicado.png) | Administrador de RemoteApp mostrando el navegador (IE/Edge) publicado con el argumento `http://localhost/RemoteAPPAccess/` — la página IIS accesible desde el portal RDWeb. |
-| 08 | [`08_usuarios_locales.png`](screenshots/08_usuarios_locales.png) | PowerShell mostrando la creación de `admin_lab` (agregado al grupo Administradores) y `user_lab`, o la vista de `Administración de equipos → Usuarios locales`. |
-| 09 | [`09_nps_radius_client.png`](screenshots/09_nps_radius_client.png) | NPS → Clientes RADIUS mostrando el cliente `Cisco-Router-Lab` con IP `20.25.37.254`, proveedor Cisco y estado habilitado. |
-| 10 | [`10_nps_policy_level15.png`](screenshots/10_nps_policy_level15.png) | NPS → Directivas de redes mostrando la política `Admin_Level_15` con condición `Grupos de Windows: Administradores` y el atributo Cisco-AVPair `shell:priv-lvl=15`. |
-| 11 | [`11_nps_policy_level1.png`](screenshots/11_nps_policy_level1.png) | NPS → Directivas de redes mostrando la política `User_Level_1` con el atributo `shell:priv-lvl=1`, posicionada debajo de `Admin_Level_15` en el orden de procesamiento. |
-| 12 | [`12_cliente_pagina_iis.png`](screenshots/12_cliente_pagina_iis.png) | Navegador del host mostrando la página IIS personalizada cargada correctamente desde `http://20.25.37.10/RemoteAPPAccess/`. |
-| 13 | [`13_rdweb_login.png`](screenshots/13_rdweb_login.png) | Portal RDWeb (`https://20.25.37.10/rdweb`) con las credenciales de `admin_lab` ingresadas y la sesión iniciada exitosamente. |
-| 14 | [`14_rdweb_app_lanzada.png`](screenshots/14_rdweb_app_lanzada.png) | Aplicación RemoteAPP (Notepad o Portal IIS) ejecutándose en el host lanzada desde el portal RDWeb — ventana del programa remoto abierta localmente. |
-| 15 | [`15_remoteapp_rdp_directo.png`](screenshots/15_remoteapp_rdp_directo.png) | Aplicación RemoteAPP lanzada desde el archivo `.rdp` directamente, sin usar el portal web — ventana del programa remoto en el host. |
-| 16 | [`16_ssh_nivel15.png`](screenshots/16_ssh_nivel15.png) | Terminal del host mostrando la conexión SSH como `admin_lab` al router y la salida de `show privilege` confirmando `Current privilege level is 15`. |
-| 17 | [`17_ssh_nivel1.png`](screenshots/17_ssh_nivel1.png) | Terminal del host mostrando la conexión SSH como `user_lab` y la salida de `show privilege` confirmando `Current privilege level is 1`, con intento fallido de `show run`. |
-| 18 | [`18_show_aaa_servers.png`](screenshots/18_show_aaa_servers.png) | Consola del router mostrando `show aaa servers` con el NPS en `State: current UP` y contadores de `accept` incrementados. |
-| 19 | [`19_show_aaa_sessions.png`](screenshots/19_show_aaa_sessions.png) | Consola del router mostrando `show aaa sessions` con las sesiones autenticadas activas. |
-| 20 | [`20_debug_radius_output.png`](screenshots/20_debug_radius_output.png) | Consola del router mostrando el output de `debug radius` durante un login de `admin_lab`, con los mensajes `Access-Request` enviado y `Access-Accept` recibido del NPS. |
+| 01 | `01_server_ip_estatica.png` | `ipconfig /all` confirmando IP `20.25.37.10/24` y gateway `20.25.37.254`. |
+| 02 | `02_dominio_creado.png` | `Get-ADDomain` mostrando `DNSRoot: lab.local` tras la promoción a DC. |
+| 03 | `03_roles_instalados.png` | `Get-WindowsFeature` confirmando RDS-RD-Server, RDS-Connection-Broker y RDS-Web-Access como `Installed`. |
+| 04 | `04_get_rdserver.png` | `Get-RDServer` mostrando los tres roles asignados a `SERVER-LOCAL.LAB.LOCAL`. |
+| 05 | `05_rdweb_certificado_ok.png` | Portal RDWeb cargando sin el error `ERR_SSL_KEY_USAGE_INCOMPATIBLE` tras el nuevo certificado. |
+| 06 | `06_collection_creada.png` | Colección de sesiones `RemoteAPP-Collection` creada. |
+| 07 | `07_remoteapp_publicado.png` | Administrador de RemoteApp con Notepad publicado. |
+| 08 | `08_iis_pagina_custom.png` | Página personalizada de IIS cargando en el navegador. |
+| 09 | `09_iis_virtual_directory.png` | Directorio virtual `RemoteAPPAccess` en IIS Manager. |
+| 10 | `10_remoteapp_iis_publicado.png` | Edge publicado como RemoteApp apuntando a la página IIS. |
+| 11 | `11_usuarios_ad.png` | Usuarios `admin_lab` y `user_lab` creados en AD. |
+| 12 | `12_nps_radius_client.png` | Cliente RADIUS `Cisco-Router-Lab` en NPS. |
+| 13 | `13_nps_policy_level15.png` | Política `Admin_Level_15` con atributo `shell:priv-lvl=15`. |
+| 14 | `14_nps_policy_level1.png` | Política `User_Level_1` con atributo `shell:priv-lvl=1`. |
+| 15 | `15_cliente_pagina_iis.png` | Cliente accediendo a la página IIS directamente. |
+| 16 | `16_rdweb_login.png` | Login exitoso en el portal RDWeb con `admin_lab`. |
+| 17 | `17_rdweb_app_lanzada.png` | App RemoteAPP lanzada desde RDWeb. |
+| 18 | `18_remoteapp_rdp_directo.png` | App RemoteAPP lanzada desde archivo `.rdp` directo. |
+| 19 | `19_ssh_nivel15.png` | SSH como `admin_lab`, `show privilege` = 15. |
+| 20 | `20_ssh_nivel1.png` | SSH como `user_lab`, `show privilege` = 1, `show run` denegado. |
+| 21 | `21_show_aaa_servers.png` | `show aaa servers` con NPS en `State: current UP`. |
+| 22 | `22_show_aaa_sessions.png` | `show aaa sessions` con sesiones activas. |
+| 23 | `23_debug_radius_output.png` | `debug radius` mostrando Access-Request / Access-Accept. |
 
 ---
 
@@ -689,8 +704,8 @@ Todas las capturas están en la carpeta [`screenshots/`](screenshots/).
 * ✅ Reloj del sistema operativo visible evidenciando fecha y hora actual.
 * ✅ Rostro y voz del autor realizando la explicación técnica.
 * ✅ Navegación a `http://20.25.37.10/RemoteAPPAccess/` — página IIS cargando.
-* ✅ Login en `https://20.25.37.10/rdweb` con `admin_lab` y lanzamiento de app RemoteAPP.
-* ✅ Apertura de `.rdp` directo — app RemoteAPP lanzada sin portal web.
+* ✅ Login en `https://SERVER-LOCAL.lab.local/rdweb` con `admin_lab` y lanzamiento de la app "Portal IIS RemoteAPP" (primer servicio de RemoteAPP).
+* ✅ Apertura de `.rdp` directo — app RemoteAPP lanzada sin portal web (segundo servicio de RemoteAPP).
 * ✅ SSH al router como `admin_lab` → `show privilege` → nivel 15.
 * ✅ SSH al router como `user_lab` → `show privilege` → nivel 1 → `show run` denegado.
 * ✅ `show aaa servers` en el router mostrando NPS UP con contadores activos.
@@ -703,6 +718,7 @@ Todas las capturas están en la carpeta [`screenshots/`](screenshots/).
 * Microsoft. (2024). *Remote Desktop Services — RemoteApp Programs*. Microsoft Docs.
 * Microsoft. (2024). *Network Policy Server (NPS) Configuration Guide*. Microsoft Docs.
 * Microsoft. (2024). *Internet Information Services (IIS) Manager*. Microsoft Docs.
+* Microsoft. (2024). *Install-ADDSForest*. Microsoft Docs.
 * Rigney, C. et al. (2000). *RFC 2865 — Remote Authentication Dial In User Service (RADIUS)*. IETF.
 * Cisco Systems. (2024). *Cisco IOS Security Configuration Guide — AAA*. Cisco.
 * Cisco Systems. (2024). *Configuring RADIUS with Cisco IOS AAA*. Cisco.
