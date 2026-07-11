@@ -339,11 +339,18 @@ https://SERVER-LOCAL.lab.local/rdweb
 
 **Ruta GUI correcta:** `Administrador del servidor → Servicios de Escritorio remoto → Colecciones → [tu colección "RemoteAPP-Collection"]`
 
-1. En el panel izquierdo, clic en **Servicios de Escritorio remoto → Colecciones**
-2. Clic en el nombre de tu colección **RemoteAPP-Collection**
-3. En la página de la colección aparecen dos secciones: **"Host de sesión de Escritorio remoto"** y **"Programas RemoteApp"**
-4. En la sección **"Programas RemoteApp"** → `Tareas → Publicar programas RemoteApp`
-5. En el asistente, marcar `notepad.exe` de la lista → **Siguiente** → **Publicar**
+En el panel izquierdo de esta vista aparecen: **Información general**, **Servidores**, **Colecciones**, y debajo el nombre de tu colección (**RemoteAPP-Col...**). Al hacer clic en ella, la página muestra dos bloques principales:
+
+- **PROPIEDADES** — resumen de la colección (tipo, recursos, grupo de usuarios).
+- **PROGRAMAS REMOTEAPP** — lista de apps publicadas, con columnas *Nombre del programa RemoteApp*, *Alias* y *Visible en Acceso web de Escritorio remoto*.
+
+**Para publicar:**
+
+1. En el bloque **PROGRAMAS REMOTEAPP** → `Tareas → Publicar programas RemoteApp`
+2. En la lista, marcar la casilla de **"Bloc de notas"** (así aparece por defecto en el listado — no hace falta escribir la ruta manualmente, ya la detecta como `%SYSTEMDRIVE%\Windows\system32\notepad...`)
+3. **Siguiente → Publicar**
+
+> El nombre que queda publicado es **"Bloc de notas"** (el nombre por defecto de Windows para `notepad.exe`), con alias `notepad`. Si quieres un nombre distinto como "Editor de Texto RemoteAPP", puedes cambiarlo después: clic derecho sobre el programa ya publicado en la lista → **Editar propiedades** → cambiar el campo **Nombre**.
 
 **Paso 3 — Exportar el archivo .rdp (para conexión directa sin portal):**
 
