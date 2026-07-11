@@ -165,7 +165,7 @@ Install-ADDSForest `
     -DomainName "lab.local" `
     -DomainNetbiosName "LAB" `
     -InstallDns:$true `
-    -SafeModeAdministratorPassword (ConvertTo-SecureString "J28112006." -AsPlainText -Force) `
+    -SafeModeAdministratorPassword (ConvertTo-SecureString "Segura123!" -AsPlainText -Force) `
     -Force:$true
 ```
 
@@ -329,7 +329,9 @@ https://SERVER-LOCAL.lab.local/rdweb
 1. `Tareas → Crear colección de sesiones`
 2. Nombre: `RemoteAPP-Collection`
 3. Seleccionar el servidor RD Session Host: `SERVER-LOCAL.lab.local`
-4. Finalizar el asistente
+4. En **Grupos de usuarios**, deja el grupo por defecto (o agrega `Domain Users` si quieres que `user_lab` también pueda conectarse a la colección).
+5. En **Discos de perfil de usuario**: **desmarca** la casilla "Habilitar discos de perfil de usuario". Esta opción centraliza los perfiles en una carpeta compartida para colecciones con varios servidores — no aplica a este lab (un solo servidor, 2 usuarios de prueba) y pedirla sin tener una ruta de recurso compartido lista solo generaría un error más adelante.
+6. Clic en **Siguiente** → **Crear** para finalizar el asistente.
 
 **Paso 2 — Publicar Notepad como RemoteAPP de prueba:**
 
