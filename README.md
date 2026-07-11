@@ -469,7 +469,12 @@ New-ADUser -Name "admin_lab" -SamAccountName "admin_lab" `
     -UserPrincipalName "admin_lab@lab.local" `
     -AccountPassword (ConvertTo-SecureString "AdminRadius123!" -AsPlainText -Force) `
     -Enabled $true -PasswordNeverExpires $true
-Add-ADGroupMember -Identity "Domain Admins" -Members "admin_lab"
+
+# El grupo "Domain Admins" se llama distinto según el idioma del sistema
+# (p. ej. "Admins. del dominio" en español). Para evitar ese problema,
+# lo referenciamos por su SID conocido (RID 512), que es el mismo en cualquier idioma:
+$domainSID = (Get-ADDomain).DomainSID.Value
+Add-ADGroupMember -Identity "$domainSID-512" -Members "admin_lab"
 
 New-ADUser -Name "user_lab" -SamAccountName "user_lab" `
     -UserPrincipalName "user_lab@lab.local" `
@@ -477,7 +482,11 @@ New-ADUser -Name "user_lab" -SamAccountName "user_lab" `
     -Enabled $true -PasswordNeverExpires $true
 ```
 
-> Nota: usamos `Domain Admins` como grupo de nivel 15 porque ya existe y es equivalente a "Administradores" local en un DC. Si prefieres un grupo dedicado, créalo con `New-ADGroup -Name "RADIUS-Admins" -GroupScope Global` y agrega ahí a `admin_lab`.
+> Si prefieres verificar el nombre real del grupo en tu idioma antes de usarlo en la política de NPS (sección 3.10), ejecuta:
+> ```powershell
+> Get-ADGroup -Filter 'Name -like "*dmin*"' | Select-Object Name
+> ```
+> En un AD en español normalmente aparece como `Admins. del dominio`.
 
 **Paso 2 — Agregar RADIUS Client (el Router):**
 
@@ -505,7 +514,7 @@ En NPS → `Clientes y servidores RADIUS → Clientes RADIUS` → clic derecho �
 |---|---|---|
 | 1 | Nombre de la directiva | `Admin_Level_15` |
 | 1 | Estado | `Habilitada` |
-| 2 | Condiciones → Agregar → `Grupos de Windows` | `LAB\Domain Admins` |
+| 2 | Condiciones → Agregar → `Grupos de Windows` | `LAB\Admins. del dominio` *(o el nombre exacto que confirmaste con `Get-ADGroup`)* |
 | 3 | Permiso de acceso | `Acceso concedido` |
 | 4 | Métodos de autenticación | `MS-CHAP v2`, `CHAP` |
 | 5 | Configuración → Atributos RADIUS → Específico del proveedor → Agregar → Proveedor `Cisco` | `shell:priv-lvl=15` |
