@@ -165,7 +165,7 @@ Install-ADDSForest `
     -DomainName "lab.local" `
     -DomainNetbiosName "LAB" `
     -InstallDns:$true `
-    -SafeModeAdministratorPassword (ConvertTo-SecureString "Segura123!" -AsPlainText -Force) `
+    -SafeModeAdministratorPassword (ConvertTo-SecureString "J28112006." -AsPlainText -Force) `
     -Force:$true
 ```
 
