@@ -335,12 +335,15 @@ https://SERVER-LOCAL.lab.local/rdweb
 
 **Paso 2 — Publicar Notepad como RemoteAPP de prueba:**
 
-**Ruta GUI:** `Administrador del servidor → Herramientas → Servicios de Escritorio remoto → Administrador de RemoteApp`
+> ⚠️ En Windows Server 2022 **no existe un "Administrador de RemoteApp" como herramienta independiente** (ese MMC separado solo existía en Server 2008 R2/2012). Desde Server 2012 en adelante, la publicación de RemoteApp se hace **dentro de la propia colección**, en Administrador del servidor. Si en `Herramientas → Remote Desktop Services` el submenú solo muestra "Diagnóstico de licencias de Escritorio remoto", es normal — no es la ruta correcta.
 
-1. Clic derecho en **Programas RemoteApp** → `Publicar programa RemoteApp`
-2. Seleccionar `notepad.exe`
-3. Nombre visible: `Editor de Texto RemoteAPP`
-4. Publicar
+**Ruta GUI correcta:** `Administrador del servidor → Servicios de Escritorio remoto → Colecciones → [tu colección "RemoteAPP-Collection"]`
+
+1. En el panel izquierdo, clic en **Servicios de Escritorio remoto → Colecciones**
+2. Clic en el nombre de tu colección **RemoteAPP-Collection**
+3. En la página de la colección aparecen dos secciones: **"Host de sesión de Escritorio remoto"** y **"Programas RemoteApp"**
+4. En la sección **"Programas RemoteApp"** → `Tareas → Publicar programas RemoteApp`
+5. En el asistente, marcar `notepad.exe` de la lista → **Siguiente** → **Publicar**
 
 **Paso 3 — Exportar el archivo .rdp (para conexión directa sin portal):**
 
@@ -419,9 +422,9 @@ http://20.25.37.10/RemoteAPPAccess/
 
 Publicar Microsoft Edge (o Internet Explorer) como aplicación RemoteAPP apuntando a la página IIS, de modo que el cliente pueda abrirla a través del portal RDWeb — esto cumple el requisito de "consultar la página mediante los dos servicios de RDP RemoteAPP" (portal web + .rdp directo).
 
-**Ruta:** `Administrador de RemoteApp → Publicar programa RemoteApp`
+**Ruta:** `Administrador del servidor → Servicios de Escritorio remoto → Colecciones → RemoteAPP-Collection → Programas RemoteApp → Tareas → Publicar programas RemoteApp`
 
-1. Seleccionar `msedge.exe` (o `iexplore.exe` si está disponible)
+1. Seleccionar `msedge.exe` (o `iexplore.exe` si está disponible) de la lista, o usar "Agregar programas RemoteApp que no aparecen en la lista" si no se detecta automáticamente
 2. Nombre visible: `Portal IIS RemoteAPP`
 3. En **Argumentos de línea de comandos**: `http://localhost/RemoteAPPAccess/`
 4. Publicar
