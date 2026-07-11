@@ -373,6 +373,10 @@ C:\inetpub\wwwroot\RemoteAPPAccess\index.html
 
 Contenido del archivo `index.html`:
 
+> ⚠️ **Si ya guardaste el archivo antes con símbolos raros (`â€"`, cuadros, etc.) y luego lo volviste a guardar en UTF-8 pero sigue igual:** esto es normal y no significa que la codificación esté mal ahora. Lo que pasa es que los caracteres especiales (el guion largo `—`, el punto medio `·`, el emoji) **ya se corrompieron a nivel de datos** la primera vez que se guardaron en ANSI. Volver a guardar como UTF-8 solo re-empaqueta esos mismos bytes rotos — no los repara, porque el editor no sabe que están mal, solo los vuelve a escribir tal cual los ve.
+>
+> **La solución real:** borra el archivo `index.html` actual y créalo de nuevo desde cero pegando el contenido de abajo (que ya usa **entidades HTML** — código ASCII puro — en vez de los caracteres especiales literales). Las entidades como `&mdash;`, `&middot;` y `&#128421;` siempre se muestran correctamente en cualquier navegador, sin importar la codificación del archivo, porque son solo texto ASCII que el navegador traduce al renderizar — no dependen de que el archivo se haya guardado en UTF-8 o ANSI.
+
 ```html
 <!DOCTYPE html>
 <html>
@@ -432,10 +436,25 @@ Publicar Microsoft Edge (o Internet Explorer) como aplicación RemoteAPP apuntan
 
 **Ruta:** `Administrador del servidor → Servicios de Escritorio remoto → Colecciones → RemoteAPP-Collection → Programas RemoteApp → Tareas → Publicar programas RemoteApp`
 
-1. Seleccionar `msedge.exe` (o `iexplore.exe` si está disponible) de la lista, o usar "Agregar programas RemoteApp que no aparecen en la lista" si no se detecta automáticamente
-2. Nombre visible: `Portal IIS RemoteAPP`
-3. En **Argumentos de línea de comandos**: `http://localhost/RemoteAPPAccess/`
-4. Publicar
+> ⚠️ El asistente de publicación en Server 2022 **no tiene un paso para escribir argumentos de línea de comandos** (eso solo existía en el "Administrador de RemoteApp" de versiones anteriores). El argumento se agrega **después**, editando las propiedades del programa ya publicado.
+
+**Paso 1 — Publicar Microsoft Edge sin argumentos:**
+
+1. En la lista de programas, marcar `Microsoft Edge` (o buscarlo con "Agregar..." si no aparece)
+2. **Siguiente → Publicar**
+
+**Paso 2 — Configurar el argumento de línea de comandos en Propiedades:**
+
+1. En la lista de **Programas RemoteApp** ya publicados, clic derecho sobre `Microsoft Edge` → **Editar propiedades**
+2. En el panel izquierdo de la ventana de Propiedades, hacer clic en la sección **"Parámetros"**
+3. Bajo **"Parámetros de línea de comandos"**, seleccionar la tercera opción: **"Usar siempre los siguientes parámetros de línea de comandos"**
+4. En el campo de texto que se habilita, escribir:
+   ```
+   http://localhost/RemoteAPPAccess/
+   ```
+5. Clic en **Aplicar**
+
+> Opcional: en la sección **"General"** de la misma ventana de Propiedades puedes cambiar el campo **"Nombre del programa RemoteApp"** de `Microsoft Edge` a algo más descriptivo como `Portal IIS RemoteAPP`, para diferenciarlo del Edge normal en el portal RDWeb.
 
 Desde el portal RDWeb (`https://SERVER-LOCAL.lab.local/rdweb`), el cliente verá esta aplicación y al abrirla se lanzará el navegador apuntando a la página IIS.
 
