@@ -534,31 +534,49 @@ En NPS → `Clientes y servidores RADIUS → Clientes RADIUS` → clic derecho �
 ---
 
 ## 4. Parte 2 — Router Cisco (AAA + RADIUS)
-
+ 
 ### 4.1 Configuración Básica e Interfaz
-
+ 
 ```cisco
 enable
 configure terminal
 hostname Lab-Router
 ip domain-name lab.local
-
-interface ethernet0/0
+ 
+interface FastEthernet0/0
  ip address 20.25.37.254 255.255.255.0
  no shutdown
 end
 ```
-
+ 
 ### 4.2 Usuarios Locales (Fallback)
-
+ 
 ```cisco
 configure terminal
 username admin_local privilege 15 secret AdminLocal123!
 username user_local privilege 1 secret UserLocal123!
 ```
-
-### 4.3 Configurar RADIUS Server
-
+ 
+### 4.3 Habilitar AAA
+ 
+```cisco
+configure terminal
+aaa new-model
+ 
+aaa authentication login default group radius local
+ 
+aaa authorization console
+aaa authorization commands 0 default group radius local
+aaa authorization commands 1 default group radius local
+aaa authorization commands 15 default group radius local
+ 
+aaa accounting exec default start-stop group radius
+ 
+enable secret EnablePassword123!
+```
+ 
+### 4.4 Configurar RADIUS Server
+ 
 ```cisco
 configure terminal
 radius server NPS-Lab
@@ -566,47 +584,29 @@ radius server NPS-Lab
  key RadiusSecret123
 exit
 ```
-
-### 4.4 Habilitar AAA
-
-```cisco
-configure terminal
-aaa new-model
-
-aaa authentication login default group radius local
-
-aaa authorization console
-aaa authorization commands 0 default group radius local
-aaa authorization commands 1 default group radius local
-aaa authorization commands 15 default group radius local
-
-aaa accounting exec default start-stop group radius
-
-enable secret EnablePassword123!
-```
-
+ 
 ### 4.5 Habilitar SSH
-
+ 
 ```cisco
 configure terminal
 ip ssh version 2
 crypto key generate rsa modulus 2048
-
+ 
 line vty 0 4
  login authentication default
  transport input ssh
  logging synchronous
 exit
-
+ 
 write memory
 ```
-
+ 
 **Verificar:**
-
+ 
 ```cisco
 show ip ssh
 ```
-
+ 
 > La salida debe mostrar `SSH Enabled - version 2.0`.
 
 ---
