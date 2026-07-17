@@ -342,8 +342,6 @@ https://SERVER-LOCAL.lab.local/rdweb
 
 **Paso 2 — Publicar Notepad como RemoteAPP de prueba:**
 
-> ⚠️ En Windows Server 2022 **no existe un "Administrador de RemoteApp" como herramienta independiente** (ese MMC separado solo existía en Server 2008 R2/2012). Desde Server 2012 en adelante, la publicación de RemoteApp se hace **dentro de la propia colección**, en Administrador del servidor. Si en `Herramientas → Remote Desktop Services` el submenú solo muestra "Diagnóstico de licencias de Escritorio remoto", es normal — no es la ruta correcta.
-
 **Ruta GUI correcta:** `Administrador del servidor → Servicios de Escritorio remoto → Colecciones → [tu colección "RemoteAPP-Collection"]`
 
 En el panel izquierdo de esta vista aparecen: **Información general**, **Servidores**, **Colecciones**, y debajo el nombre de tu colección (**RemoteAPP-Col...**). Al hacer clic en ella, la página muestra dos bloques principales:
