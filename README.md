@@ -543,7 +543,7 @@ configure terminal
 hostname Lab-Router
 ip domain-name lab.local
 
-interface FastEthernet0/0
+interface ethernet0/0
  ip address 20.25.37.254 255.255.255.0
  no shutdown
 end
