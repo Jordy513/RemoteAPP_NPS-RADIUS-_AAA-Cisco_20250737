@@ -151,7 +151,7 @@ Set-DnsClientServerAddress -InterfaceAlias "Ethernet0" -ServerAddresses 127.0.0.
 ipconfig /all
 ```
 
-> Ver evidencia: [01_server_ip_estatica.png](#01_server_ip_estaticapng)
+> Ver evidencia: [01_server_ip_estatica.png](/screenshots/01_server_ip_estaticapng)
 
 ---
 
@@ -194,7 +194,7 @@ ipconfig /all
 
 > A partir de aquí inicia sesión como `LAB\Administrador` (misma contraseña que tenías como admin local).
 
-> Ver evidencia: [02_dominio_creado.png](#02_dominio_creadopng)
+> Ver evidencia: [02_dominio_creado.png](/screenshots/02_dominio_creadopng)
 
 ---
 
@@ -229,7 +229,7 @@ Get-WindowsFeature RDS-RD-Server, RDS-Connection-Broker, RDS-Web-Access
 
 Los tres deben mostrar `Installed`.
 
-> Ver evidencia: [03_roles_instalados.png](#03_roles_instaladospng)
+> Ver evidencia: [03_roles_instalados.png](/screenshots/03_roles_instaladospng)
 
 ---
 
@@ -277,7 +277,7 @@ Debe listar `SERVER-LOCAL.LAB.LOCAL` con los tres roles: `RDS-RD-SERVER`, `RDS-C
 
 > En **Administrador del servidor**, si la sección "Servicios de Escritorio remoto" aún muestra "No existe una implementación" pese a que `Get-RDServer` ya la confirma, es solo caché de la consola — cierra y vuelve a abrir Administrador del servidor (o `Restart-Service RDMS` y reabre).
 
-> Ver evidencia: [04_get_rdserver.png](#04_get_rdserverpng)
+> Ver evidencia: [04_get_rdserver.png](/screenshots/04_get_rdserverpng)
 
 ---
 
@@ -323,7 +323,7 @@ https://SERVER-LOCAL.lab.local/rdweb
 
 > El navegador seguirá mostrando advertencia de "certificado no confiable" (porque sigue siendo autofirmado), pero ya no debe dar el error `ERR_SSL_KEY_USAGE_INCOMPATIBLE`. Acepta la excepción de seguridad para continuar — es esperado en un lab sin CA corporativa.
 
-> Ver evidencia: [05_rdweb_certificado_ok.png](#05_rdweb_certificado_okpng)
+> Ver evidencia: [05_rdweb_certificado_ok.png](/screenshots/05_rdweb_certificado_okpng)
 
 ---
 
@@ -362,7 +362,7 @@ En el panel izquierdo de esta vista aparecen: **Información general**, **Servid
 1. Clic derecho sobre la app publicada → `Crear archivo .rdp`
 2. Guardar en una ubicación accesible para el cliente
 
-> Ver evidencia: [06_collection_creada.png](#06_collection_creadapng) y [07_remoteapp_publicado.png](#07_remoteapp_publicadopng)
+> Ver evidencia: [06_collection_creada.png](/screenshots/06_collection_creadapng) y [07_remoteapp_publicado.png](/screenshots/07_remoteapp_publicadopng)
 
 ---
 
@@ -427,7 +427,7 @@ Contenido del archivo `index.html`:
 http://20.25.37.10/RemoteAPPAccess/
 ```
 
-> Ver evidencia: [08_iis_pagina_custom.png](#08_iis_pagina_custompng) y [09_iis_virtual_directory.png](#09_iis_virtual_directorypng)
+> Ver evidencia: [08_iis_pagina_custom.png](/screenshots/08_iis_pagina_custompng) y [09_iis_virtual_directory.png](/screenshots/09_iis_virtual_directorypng)
 
 ---
 
@@ -459,7 +459,7 @@ Publicar Microsoft Edge (o Internet Explorer) como aplicación RemoteAPP apuntan
 
 Desde el portal RDWeb (`https://SERVER-LOCAL.lab.local/rdweb`), el cliente verá esta aplicación y al abrirla se lanzará el navegador apuntando a la página IIS.
 
-> Ver evidencia: [10_remoteapp_iis_publicado.png](#10_remoteapp_iis_publicadopng)
+> Ver evidencia: [10_remoteapp_iis_publicado.png](/screenshots/10_remoteapp_iis_publicadopng)
 
 ---
 
@@ -505,7 +505,7 @@ En NPS → `Clientes y servidores RADIUS → Clientes RADIUS` → clic derecho �
 | Secreto compartido | `RadiusSecret123` |
 | Confirmar secreto | `RadiusSecret123` |
  
-> Ver evidencia: [11_usuarios_ad.png](#11_usuarios_adpng) y [12_nps_radius_client.png](#12_nps_radius_clientpng)
+> Ver evidencia: [11_usuarios_ad.png](/screenshots/11_usuarios_adpng) y [12_nps_radius_client.png](/screenshots/12_nps_radius_clientpng)
  
 ---
 
@@ -534,7 +534,7 @@ En NPS → `Clientes y servidores RADIUS → Clientes RADIUS` → clic derecho �
 
 > `Admin_Level_15` debe estar **por encima** de `User_Level_1` en el orden de procesamiento (NPS aplica la primera política que hace match).
 
-> Ver evidencia: [13_nps_policy_level15.png](#13_nps_policy_level15png) y [14_nps_policy_level1.png](#14_nps_policy_level1png)
+> Ver evidencia: [13_nps_policy_level15.png](/screenshots/13_nps_policy_level15png) y [14_nps_policy_level1.png](/screenshots/14_nps_policy_level1png)
 
 ---
 
@@ -625,7 +625,7 @@ show ip ssh
 http://20.25.37.10/RemoteAPPAccess/
 ```
 
-> Ver evidencia: [15_cliente_pagina_iis.png](#15_cliente_pagina_iispng)
+> Ver evidencia: [15_cliente_pagina_iis.png](/screenshots/15_cliente_pagina_iispng)
 
 ### 5.2 Portal RemoteAPP Web (RDWeb)
 
@@ -635,13 +635,13 @@ https://SERVER-LOCAL.lab.local/rdweb
 
 Iniciar sesión con `admin_lab` / `AdminRadius123!`. Deben aparecer las apps publicadas (Notepad, Portal IIS). Lanzar el "Portal IIS RemoteAPP" desde aquí satisface la prueba de "consultar la página vía RDWeb".
 
-> Ver evidencia: [16_rdweb_login.png](#16_rdweb_loginpng) y [17_rdweb_app_lanzada.png](#17_rdweb_app_lanzadapng)
+> Ver evidencia: [16_rdweb_login.png](/screenshots/16_rdweb_loginpng) y [17_rdweb_app_lanzada.png](/screenshots/17_rdweb_app_lanzadapng)
 
 ### 5.3 Conexión RemoteAPP Directo (.rdp)
 
 Abrir el archivo `.rdp` exportado en la sección 3.6/3.8 (versión Notepad o versión Edge apuntando a la página IIS). Esto cubre el segundo de "los dos servicios de RDP RemoteAPP" que pide la tarea.
 
-> Ver evidencia: [18_remoteapp_rdp_directo.png](#18_remoteapp_rdp_directopng)
+> Ver evidencia: [18_remoteapp_rdp_directo.png](/screenshots/18_remoteapp_rdp_directopng)
 
 ### 5.4 SSH al Router via RADIUS
  
@@ -675,7 +675,7 @@ Current privilege level is 1
 Lab-Router> show run    ! debe ser denegado
 ```
  
-> Ver evidencia: [19_ssh_nivel15.png](#19_ssh_nivel15png) y [20_ssh_nivel1.png](#20_ssh_nivel1png)
+> Ver evidencia: [19_ssh_nivel15.png](/screenshots/19_ssh_nivel15png) y [20_ssh_nivel1.png](/screenshots/20_ssh_nivel1png)
 
 ### 5.5 Verificación de AAA en el Router
 
@@ -703,7 +703,7 @@ Detener el debug:
 undebug all
 ```
 
-> Ver evidencia: [21_show_aaa_servers.png](#21_show_aaa_serverspng), [22_show_aaa_sessions.png](#22_show_aaa_sessionspng) y [23_debug_radius_output.png](#23_debug_radius_outputpng)
+> Ver evidencia: [21_show_aaa_servers.png](/screenshots/21_show_aaa_serverspng), [22_show_aaa_sessions.png](/screenshots/22_show_aaa_sessionspng) y [23_debug_radius_output.png](/screenshots/23_debug_radius_outputpng)
 
 ---
 
@@ -713,29 +713,29 @@ Todas las capturas están en la carpeta [`screenshots/`](screenshots/).
 
 | # | Archivo | Descripción |
 |---|---|---|
-| 01 | `01_server_ip_estatica.png` | `ipconfig /all` confirmando IP `20.25.37.10/24` y gateway `20.25.37.254`. |
-| 02 | `02_dominio_creado.png` | `Get-ADDomain` mostrando `DNSRoot: lab.local` tras la promoción a DC. |
-| 03 | `03_roles_instalados.png` | `Get-WindowsFeature` confirmando RDS-RD-Server, RDS-Connection-Broker y RDS-Web-Access como `Installed`. |
-| 04 | `04_get_rdserver.png` | `Get-RDServer` mostrando los tres roles asignados a `SERVER-LOCAL.LAB.LOCAL`. |
-| 05 | `05_rdweb_certificado_ok.png` | Portal RDWeb cargando sin el error `ERR_SSL_KEY_USAGE_INCOMPATIBLE` tras el nuevo certificado. |
-| 06 | `06_collection_creada.png` | Colección de sesiones `RemoteAPP-Collection` creada. |
-| 07 | `07_remoteapp_publicado.png` | Administrador de RemoteApp con Notepad publicado. |
-| 08 | `08_iis_pagina_custom.png` | Página personalizada de IIS cargando en el navegador. |
-| 09 | `09_iis_virtual_directory.png` | Directorio virtual `RemoteAPPAccess` en IIS Manager. |
-| 10 | `10_remoteapp_iis_publicado.png` | Edge publicado como RemoteApp apuntando a la página IIS. |
-| 11 | `11_usuarios_ad.png` | Usuarios `admin_lab` y `user_lab` creados en AD. |
-| 12 | `12_nps_radius_client.png` | Cliente RADIUS `Cisco-Router-Lab` en NPS. |
-| 13 | `13_nps_policy_level15.png` | Política `Admin_Level_15` con atributo `shell:priv-lvl=15`. |
-| 14 | `14_nps_policy_level1.png` | Política `User_Level_1` con atributo `shell:priv-lvl=1`. |
-| 15 | `15_cliente_pagina_iis.png` | Cliente accediendo a la página IIS directamente. |
-| 16 | `16_rdweb_login.png` | Login exitoso en el portal RDWeb con `admin_lab`. |
-| 17 | `17_rdweb_app_lanzada.png` | App RemoteAPP lanzada desde RDWeb. |
-| 18 | `18_remoteapp_rdp_directo.png` | App RemoteAPP lanzada desde archivo `.rdp` directo. |
-| 19 | `19_ssh_nivel15.png` | SSH como `admin_lab`, `show privilege` = 15. |
-| 20 | `20_ssh_nivel1.png` | SSH como `user_lab`, `show privilege` = 1, `show run` denegado. |
-| 21 | `21_show_aaa_servers.png` | `show aaa servers` con NPS en `State: current UP`. |
-| 22 | `22_show_aaa_sessions.png` | `show aaa sessions` con sesiones activas. |
-| 23 | `23_debug_radius_output.png` | `debug radius` mostrando Access-Request / Access-Accept. |
+| 01 | [01_server_ip_estatica.png](/screenshots/01_server_ip_estatica.png) | `ipconfig /all` confirmando IP `20.25.37.10/24` y gateway `20.25.37.254`. |
+| 02 | [02_dominio_creado.png](/screenshots/02_dominio_creado.png) | `Get-ADDomain` mostrando `DNSRoot: lab.local` tras la promoción a DC. |
+| 03 | [03_roles_instalados.png](/screenshots/03_roles_instalados.png) | `Get-WindowsFeature` confirmando RDS-RD-Server, RDS-Connection-Broker y RDS-Web-Access como `Installed`. |
+| 04 | [04_get_rdserver.png](/screenshots/04_get_rdserver.png) | `Get-RDServer` mostrando los tres roles asignados a `SERVER-LOCAL.LAB.LOCAL`. |
+| 05 | [05_rdweb_certificado_ok.png](/screenshots/05_rdweb_certificado_ok.png) | Portal RDWeb cargando sin el error `ERR_SSL_KEY_USAGE_INCOMPATIBLE` tras el nuevo certificado. |
+| 06 | [06_collection_creada.png](/screenshots/06_collection_creada.png) | Colección de sesiones `RemoteAPP-Collection` creada. |
+| 07 | [07_remoteapp_publicado.png](/screenshots/07_remoteapp_publicado.png) | Administrador de RemoteApp con Notepad publicado. |
+| 08 | [08_iis_pagina_custom.png](/screenshots/08_iis_pagina_custom.png) | Página personalizada de IIS cargando en el navegador. |
+| 09 | [09_iis_virtual_directory.png](/screenshots/09_iis_virtual_directory.png) | Directorio virtual `RemoteAPPAccess` en IIS Manager. |
+| 10 | [10_remoteapp_iis_publicado.png](/screenshots/10_remoteapp_iis_publicado.png) | Edge publicado como RemoteApp apuntando a la página IIS. |
+| 11 | [11_usuarios_ad.png](/screenshots/11_usuarios_ad.png) | Usuarios `admin_lab` y `user_lab` creados en AD. |
+| 12 | [12_nps_radius_client.png](/screenshots/12_nps_radius_client.png) | Cliente RADIUS `Cisco-Router-Lab` en NPS. |
+| 13 | [13_nps_policy_level15.png](/screenshots/13_nps_policy_level15.png) | Política `Admin_Level_15` con atributo `shell:priv-lvl=15`. |
+| 14 | [14_nps_policy_level1.png](/screenshots/14_nps_policy_level1.png) | Política `User_Level_1` con atributo `shell:priv-lvl=1`. |
+| 15 | [15_cliente_pagina_iis.png](/screenshots/15_cliente_pagina_iis.png) | Cliente accediendo a la página IIS directamente. |
+| 16 | [16_rdweb_login.png](/screenshots/16_rdweb_login.png) | Login exitoso en el portal RDWeb con `admin_lab`. |
+| 17 | [17_rdweb_app_lanzada.png](/screenshots/17_rdweb_app_lanzada.png) | App RemoteAPP lanzada desde RDWeb. |
+| 18 | [18_remoteapp_rdp_directo.png](/screenshots/18_remoteapp_rdp_directo.png) | App RemoteAPP lanzada desde archivo `.rdp` directo. |
+| 19 | [19_ssh_nivel15.png](/screenshots/19_ssh_nivel15.png) | SSH como `admin_lab`, `show privilege` = 15. |
+| 20 | [20_ssh_nivel1.png](/screenshots/20_ssh_nivel1.png) | SSH como `user_lab`, `show privilege` = 1, `show run` denegado. |
+| 21 | [21_show_aaa_servers.png](/screenshots/21_show_aaa_servers.png) | `show aaa servers` con NPS en `State: current UP`. |
+| 22 | [22_show_aaa_sessions.png](/screenshots/22_show_aaa_sessions.png) | `show aaa sessions` con sesiones activas. |
+| 23 | [23_debug_radius_output.png](/screenshots/23_debug_radius_output.png) | `debug radius` mostrando Access-Request / Access-Accept. |
 
 ---
 
