@@ -200,7 +200,7 @@ ipconfig /all
 
 ### 3.3 Instalación de Roles (IIS, NPS, RDS)
 
-**Paso 1 — IIS y NPS (roles independientes, sin problema):**
+**Paso 1 — IIS y NPS (roles independientes):**
 
 ```powershell
 Install-WindowsFeature Web-Server, Web-App-Dev, Net-Framework-45-ASPNET, Web-Asp-Net45
@@ -208,8 +208,6 @@ Install-WindowsFeature NPAS -IncludeManagementTools
 ```
 
 **Paso 2 — Roles de RDS, instalados uno por uno vía PowerShell:**
-
-> ⚠️ **No uses el asistente GUI "Instalación de Servicios de Escritorio remoto → Implementación estándar"**. Ese wizard tiene un bug conocido en Server 2022 (falla con `ArgumentNotValid: MultiPointServerRole` y cancela toda la instalación). Instala los role services por separado en su lugar:
 
 ```powershell
 Install-WindowsFeature -Name RDS-RD-Server -IncludeManagementTools
