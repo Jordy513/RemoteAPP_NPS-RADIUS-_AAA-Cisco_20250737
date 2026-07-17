@@ -566,6 +566,7 @@ aaa new-model
 aaa authentication login default group radius local
  
 aaa authorization console
+aaa authorization exec default group radius local
 aaa authorization commands 0 default group radius local
 aaa authorization commands 1 default group radius local
 aaa authorization commands 15 default group radius local
@@ -638,33 +639,37 @@ Abrir el archivo `.rdp` exportado en la sección 3.6/3.8 (versión Notepad o ver
 > Ver evidencia: [18_remoteapp_rdp_directo.png](#18_remoteapp_rdp_directopng)
 
 ### 5.4 SSH al Router via RADIUS
-
+ 
 **Nivel 15:**
-
+ 
+> ⚠️ Con routers IOS antiguos (como imágenes IOL de 2013), el cliente SSH de Windows 10 puede fallar con `Unable to negotiate... no matching cipher found`, porque el router solo ofrece cifrados CBC que los clientes modernos deshabilitan por defecto. Fuerza el cifrado explícitamente con `-c`:
+ 
 ```bash
-ssh admin_lab@20.25.37.254
+ssh -c aes128-cbc admin_lab@20.25.37.254
 # Password: AdminRadius123!
 ```
-
+ 
+> Si `aes128-cbc` no es aceptado, prueba `-c aes256-cbc` o `-c 3des-cbc` (cualquiera de los que el router ofreció en el mensaje de error).
+ 
 ```cisco
 Lab-Router> show privilege
 Current privilege level is 15
 Lab-Router# show run    ! debe funcionar
 ```
-
+ 
 **Nivel 1:**
-
+ 
 ```bash
-ssh user_lab@20.25.37.254
+ssh -c aes128-cbc user_lab@20.25.37.254
 # Password: UserRadius123!
 ```
-
+ 
 ```cisco
 Lab-Router> show privilege
 Current privilege level is 1
 Lab-Router> show run    ! debe ser denegado
 ```
-
+ 
 > Ver evidencia: [19_ssh_nivel15.png](#19_ssh_nivel15png) y [20_ssh_nivel1.png](#20_ssh_nivel1png)
 
 ### 5.5 Verificación de AAA en el Router
