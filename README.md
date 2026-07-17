@@ -741,9 +741,9 @@ Todas las capturas están en la carpeta [`screenshots/`](screenshots/).
 
 ## 7. Video Demostrativo
 
-🎥 **[Ver demostración en YouTube](#)**
+🎥 **[Ver demostración en YouTube](https://youtu.be/csI71-pTpAw)**
 
-**Duración:** máximo 8 minutos
+**Duración:** 7:58
 
 **Contenido del video:**
 
