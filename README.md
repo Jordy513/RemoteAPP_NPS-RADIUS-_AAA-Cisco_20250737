@@ -47,24 +47,33 @@ Esta topología integra tres servicios en un único entorno de laboratorio:
 ### 2.1 Diagrama de Topología
 
 ```
-                    ┌─────────────────────────────────┐
-                    │         Red del Laboratorio      │
-                    │         20.25.37.0/24            │
-                    │    (Host-Only / PNETLab Cloud)   │
-                    └────┬───────────┬────────────┬────┘
-                         │           │            │
-              ┌──────────┴──┐  ┌─────┴──────┐  ┌─┴──────────────┐
-              │  Windows    │  │   Router   │  │    Cliente     │
-              │  Server 2022│  │   Cisco    │  │  (Host físico) │
-              │  (DC lab.   │  │            │  │                │
-              │   local)    │  │            │  │                │
-              │ 20.25.37.10 │  │20.25.37.254│  │  20.25.37.X    │
-              │             │  │            │  │  (DHCP o       │
-              │ • AD DS     │  │ • AAA      │  │   estática)    │
-              │ • IIS       │  │ • RADIUS   │  │                │
-              │ • RemoteAPP │  │ • SSH      │  │                │
-              │ • NPS/RADIUS│  │            │  │                │
-              └─────────────┘  └────────────┘  └────────────────┘
+                  ┌───────────────────────────┐
+                  │      Router Cisco         │
+                  │      20.25.37.254         │
+                  │                           │
+                  │ • AAA                     │
+                  │ • RADIUS Client           │
+                  │ • SSH                     │
+                  └─────────────┬─────────────┘
+                                │ e0/0
+                                │
+                  ┌─────────────┴─────────────┐
+                  │      Switch de Capa 2     │
+                  │    (Red 20.25.37.0/24)    │
+                  └───────┬───────────┬───────┘
+                          │           │
+            ┌─────────────┴─┐       ┌─┴───────────────┐
+            │  Windows      │       │    Cliente      │
+            │  Server 2022  │       │  (Host físico)  │
+            │  (DC lab.     │       │                 │
+            │   local)      │       │                 │
+            │ 20.25.37.10   │       │   20.25.37.X    │
+            │               │       │  (DHCP o        │
+            │ • AD DS       │       │   estática)     │
+            │ • IIS         │       │                 │
+            │ • RemoteAPP   │       │                 │
+            │ • NPS/RADIUS  │       │                 │
+            └───────────────┘       └─────────────────┘
 
   Flujo de autenticación RADIUS:
   Cliente SSH → Router (20.25.37.254) → NPS/RADIUS (20.25.37.10)
